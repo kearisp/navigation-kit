@@ -26,10 +26,7 @@ type RoutesWithoutParams<T extends RouteMap> = {
             : never;
 }[keyof T];
 
-export const createRouter = <
-    const TRoutes extends RouteMap,
-    TNavigateOptions = void
->(
+export const createRouter = <const TRoutes extends RouteMap>(
     routes: TRoutes,
     adapter: Partial<RouterAdapter> = {}
 ) => {
@@ -61,7 +58,7 @@ export const createRouter = <
         return _matchPath(handlePattern(route), pathname);
     };
 
-    const handleUseRouter = (
+    const handleUseRouter = <TNavigateOptions = void>(
         navigate: (path: string, options?: TNavigateOptions) => void,
         pathname: string
     ) => {

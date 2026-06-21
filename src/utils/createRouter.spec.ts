@@ -110,9 +110,8 @@ describe("createRouter — useRouter", () => {
 
     it("to() passes navigate options through", () => {
         type Options = {replace: boolean};
-        const r = createRouter<typeof routes, Options>(routes);
-        const navigate = jest.fn();
-        const {to} = r.useRouter(navigate, "/");
+        const navigate: jest.Mock<void, [string, Options?]> = jest.fn();
+        const {to} = router.useRouter(navigate, "/");
 
         to("about", undefined, {replace: true});
         expect(navigate).toHaveBeenCalledWith("/about", {replace: true});
