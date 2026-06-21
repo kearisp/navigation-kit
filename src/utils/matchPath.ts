@@ -44,7 +44,7 @@ function compilePath(
     }
 
     return [
-        caseSensitive ? new RegExp(regexpSource, "i") : new RegExp(regexpSource),
+        !caseSensitive ? new RegExp(regexpSource, "i") : new RegExp(regexpSource),
         params
     ];
 }
@@ -64,7 +64,8 @@ export function matchPath<Path extends string>(
     );
     const match = pathname.match(matcher);
 
-    if(!match) return null;
+    if(!match)
+        return null;
 
     const matchedPathname = match[0];
     let pathnameBase = matchedPathname.replace(/(.)\/+$/, "$1");
@@ -72,16 +73,19 @@ export function matchPath<Path extends string>(
 
     const params = compiledParams.reduce<Record<string, string | undefined>>(
         (memo, {paramName, isOptional}, index) => {
-            if (paramName === "*") {
+            if(paramName === "*") {
                 const splatValue = captureGroups[index] || "";
                 pathnameBase = matchedPathname
                     .slice(0, matchedPathname.length - splatValue.length)
                     .replace(/(.)\/+$/, "$1");
             }
+
             const value = captureGroups[index];
+
             memo[paramName] = isOptional && !value
                 ? undefined
                 : (value || "").replace(/%2F/g, "/");
+
             return memo;
         },
         {}

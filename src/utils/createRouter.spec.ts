@@ -93,6 +93,7 @@ describe("createRouter — match", () => {
 
     it("respects caseSensitive flag on PathPattern routes", () => {
         const r = createRouter({page: {path: "/Page", caseSensitive: true}});
+
         expect(r.match("page", "/page")).toBeNull();
         expect(r.match("page", "/Page")).not.toBeNull();
     });
