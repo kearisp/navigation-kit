@@ -89,7 +89,8 @@ export const createRouter = <const TRoutes extends RouteMap>(
         return {
             to: handleTo,
             match: <R extends keyof TRoutes>(route: R, path: string = pathname) => handleMatch(route, path),
-            path: handlePath
+            path: handlePath,
+            url: handleUrl
         };
     };
 
