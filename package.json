@@ -1,0 +1,40 @@
+{
+    "name": "navigation-kit",
+    "type": "commonjs",
+    "version": "0.0.1",
+    "author": "Kris Papercut <krispcut@gmail.com>",
+    "description": "",
+    "license": "MIT",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "homepage": "https://github.com/kearisp/navigation-kit#readme",
+    "bugs": {
+        "url": "https://github.com/kearisp/navigation-kit/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kearisp/navigation-kit.git"
+    },
+    "scripts": {
+        "prepublishOnly": "npm run build",
+        "build": "tsc --project tsconfig.build.json",
+        "watch": "tsc -w --project tsconfig.build.json",
+        "test": "jest --colors",
+        "test-watch": "jest --colors --watchAll --coverage",
+        "make-coverage-badge": "make-coverage-badge"
+    },
+    "ts-node": {
+        "compilerOptions": {
+            "module": "CommonJS"
+        }
+    },
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^26.0.0",
+        "jest": "^30.4.2",
+        "make-coverage-badge": "^1.2.0",
+        "ts-jest": "^29.4.11",
+        "ts-node": "^10.9.2",
+        "typescript": "^6.0.3"
+    }
+}
