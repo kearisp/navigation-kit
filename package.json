@@ -1,9 +1,9 @@
 {
     "name": "navigation-kit",
     "type": "commonjs",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": "Kris Papercut <krispcut@gmail.com>",
-    "description": "",
+    "description": "Framework-agnostic typed routing utility for TypeScript",
     "license": "MIT",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",

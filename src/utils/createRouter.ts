@@ -58,7 +58,7 @@ export const createRouter = <const TRoutes extends RouteMap>(
         return _matchPath(handlePattern(route), pathname);
     };
 
-    const handleUseRouter = <TNavigateOptions = void>(
+    const handleCreateNavigator = <TNavigateOptions = void>(
         navigate: (path: string, options?: TNavigateOptions) => void,
         pathname: string
     ) => {
@@ -99,6 +99,6 @@ export const createRouter = <const TRoutes extends RouteMap>(
         path: handlePath,
         url: handleUrl,
         match: handleMatch,
-        useRouter: handleUseRouter
+        createNavigator: handleCreateNavigator
     };
 };

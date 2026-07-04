@@ -99,10 +99,10 @@ describe("createRouter — match", () => {
     });
 });
 
-describe("createRouter — useRouter", () => {
+describe("createRouter — createNavigator", () => {
     it("to() calls navigate with the generated URL", () => {
         const navigate = jest.fn();
-        const {to} = router.useRouter(navigate, "/");
+        const {to} = router.createNavigator(navigate, "/");
 
         to("user", {id: "7"});
         expect(navigate).toHaveBeenCalledWith("/users/7", undefined);
@@ -111,7 +111,7 @@ describe("createRouter — useRouter", () => {
     it("to() passes navigate options through", () => {
         type Options = {replace: boolean};
         const navigate: jest.Mock<void, [string, Options?]> = jest.fn();
-        const {to} = router.useRouter(navigate, "/");
+        const {to} = router.createNavigator(navigate, "/");
 
         to("about", undefined, {replace: true});
         expect(navigate).toHaveBeenCalledWith("/about", {replace: true});
@@ -119,7 +119,7 @@ describe("createRouter — useRouter", () => {
 
     it("match() uses current pathname by default", () => {
         const navigate = jest.fn();
-        const {match} = router.useRouter(navigate, "/users/99");
+        const {match} = router.createNavigator(navigate, "/users/99");
 
         const result = match("user");
         expect(result?.params.id).toBe("99");
@@ -127,14 +127,14 @@ describe("createRouter — useRouter", () => {
 
     it("match() accepts an explicit pathname", () => {
         const navigate = jest.fn();
-        const {match} = router.useRouter(navigate, "/");
+        const {match} = router.createNavigator(navigate, "/");
 
         const result = match("user", "/users/42");
         expect(result?.params.id).toBe("42");
     });
 
     it("path() returns the raw path string", () => {
-        const {path} = router.useRouter(jest.fn(), "/");
+        const {path} = router.createNavigator(jest.fn(), "/");
         expect(path("user")).toBe("/users/:id");
     });
 });
