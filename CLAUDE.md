@@ -35,7 +35,7 @@ Returned object:
 - **`path(route)`** — returns the raw path string (e.g. `"/users/:id"`)
 - **`url(route, params?)`** — generates a URL; TypeScript enforces that `params` is required for routes with dynamic segments and forbidden for static routes
 - **`match(route, pathname)`** — returns `PathMatch | null`
-- **`useRouter(navigate, pathname)`** — returns `{ to, match, path }` for navigation; `navigate` and `pathname` are injected by the adapter (e.g. `useNavigate()` and `useLocation().pathname` in react-router)
+- **`createNavigator(navigate, pathname)`** — returns `{ to, match, path }` for navigation; `navigate` and `pathname` are injected by the adapter (e.g. `useNavigate()` and `useLocation().pathname` in react-router)
 
 ### Type machinery (`src/types/PathParam.ts`)
 
@@ -56,7 +56,7 @@ createRouter(routes, {
 });
 ```
 
-### `useRouter(navigate, pathname)` integration pattern
+### `createNavigator(navigate, pathname)` integration pattern
 
 In a react-router adapter package:
 ```ts
@@ -64,10 +64,10 @@ const makeRouter = (routes) => {
     const router = createRouter(routes);
     return {
         ...router,
-        useRouter: () => {
+        createNavigator: () => {
             const navigate = useNavigate();
             const { pathname } = useLocation();
-            return useMemo(() => router.useRouter(navigate, pathname), [navigate, pathname]);
+            return useMemo(() => router.createNavigator(navigate, pathname), [navigate, pathname]);
         },
     };
 };
@@ -79,7 +79,7 @@ Controls the type of options passed to `navigate` and forwarded through `to()`:
 
 ```ts
 createRouter<typeof routes, NavigateOptions>(routes);
-// router.useRouter(navigate: (path, options?: NavigateOptions) => void, pathname)
+// router.createNavigator(navigate: (path, options?: NavigateOptions) => void, pathname)
 // { to: (route, params?, options?: NavigateOptions) => void }
 ```
 

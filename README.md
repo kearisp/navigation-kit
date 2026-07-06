@@ -52,11 +52,10 @@ const router = createRouter(routes);
 **Type parameters:**
 
 ```ts
-createRouter<TRoutes, TNavigateOptions = void>(routes, adapter?)
+createRouter<TRoutes>(routes, adapter?)
 ```
 
 - `TRoutes` — inferred from the routes argument; use `as const` on your routes object
-- `TNavigateOptions` — type of the `options` argument forwarded to `navigate` (e.g. `NavigateOptions` from react-router). Defaults to `void`.
 
 ---
 
@@ -125,12 +124,14 @@ match?.params.id; // "42"
 
 ---
 
-#### `router.useRouter(navigate, pathname)`
+#### `router.createNavigator<TNavigateOptions>(navigate, pathname)`
 
 Creates navigation helpers by injecting a `navigate` function and the current `pathname`. Designed to be called inside a framework hook.
 
+The generic `TNavigateOptions` types the `options` argument forwarded to `navigate` (e.g. `NavigateOptions` from react-router). Defaults to `void`.
+
 ```ts
-const { to, match, path } = router.useRouter(navigate, pathname);
+const { to, match, path } = router.createNavigator(navigate, pathname);
 
 to("about");                          // navigates to "/about"
 to("user", { id: "42" });            // navigates to "/users/42"
@@ -154,11 +155,11 @@ export const makeRouter = <const TRoutes extends RouteMap>(routes: TRoutes) => {
 
     return {
         ...router,
-        useRouter: () => {
+        useNavigator: () => {
             const navigate = useNavigate();
             const { pathname } = useLocation();
             return useMemo(
-                () => router.useRouter(navigate, pathname),
+                () => router.createNavigator(navigate, pathname),
                 [navigate, pathname]
             );
         },
@@ -181,14 +182,53 @@ Both have built-in defaults (implementations copied from react-router, no runtim
 
 ## Navigate options
 
-Pass a second type parameter to type the options forwarded through `to()`:
+Pass a type parameter to `createNavigator` to type the options forwarded through `to()`:
 
 ```ts
 import { NavigateOptions } from "react-router";
 
-const router = createRouter<typeof routes, NavigateOptions>(routes);
-
-const { to } = router.useRouter(navigate, pathname);
+const { to } = router.createNavigator<NavigateOptions>(navigate, pathname);
 to("about", undefined, { replace: true });
 to("user", { id: "42" }, { state: { from: "/" } });
+```
+
+## Define once, import anywhere
+
+The intended pattern is to create the router in one place and import it wherever navigation is needed — keeping route definitions as the single source of truth.
+
+```ts
+// router.ts — define once
+import { createRouter } from "navigation-kit";
+
+const routes = {
+    home:  "/",
+    user:  "/users/:id",
+} as const;
+
+export const Router = createRouter(routes);
+```
+
+```ts
+// useRouter.ts — wrap in a framework hook
+import { useMemo } from "react";
+import { useNavigate, useLocation, NavigateOptions } from "react-router";
+import { Router } from "./router";
+
+export const useRouter = () => {
+    const navigate = useNavigate();
+    const { pathname } = useLocation();
+
+    return useMemo(
+        () => Router.createNavigator<NavigateOptions>(navigate, pathname),
+        [navigate, pathname]
+    );
+};
+```
+
+```ts
+// SomeComponent.tsx — use anywhere
+import { useRouter } from "./useRouter";
+
+const { to, match } = useRouter();
+to("user", { id: "42" });
 ```
