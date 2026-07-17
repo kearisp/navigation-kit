@@ -15,9 +15,9 @@ npm run test-watch     # jest in watch mode with coverage
 
 `navigation-kit` is a framework-agnostic TypeScript routing utility. It exposes a typed router factory that has no runtime dependencies on React or `react-router`. Integration with a specific router (e.g. `react-router`) lives in a separate adapter package.
 
-### Core: `createRouter(routes, adapter?)`
+### Core: `createNavigator(routes, params?)`
 
-Located in `src/utils/createRouter.ts`. Takes a route map and an optional adapter and returns a typed router object.
+Located in `src/utils/createNavigator.ts`. Takes a route map and optional `NavigatorParams` and returns a typed router object.
 
 ```ts
 const routes = {
@@ -25,7 +25,7 @@ const routes = {
     user: "/users/:id",
 } as const; // as const is REQUIRED for TypeScript to infer literal path strings
 
-const router = createRouter(routes);
+const router = createNavigator(routes);
 ```
 
 **`as const` is mandatory.** Without it, TypeScript widens string values to `string`, which breaks all type-level param inference. The `const` modifier on the `TRoutes` type parameter only preserves literals when an object literal is passed directly (not via a variable).
@@ -33,9 +33,9 @@ const router = createRouter(routes);
 Returned object:
 - **`pattern(route)`** — returns `PathPattern` for the route
 - **`path(route)`** — returns the raw path string (e.g. `"/users/:id"`)
-- **`url(route, params?)`** — generates a URL; TypeScript enforces that `params` is required for routes with dynamic segments and forbidden for static routes
+- **`url(route, params?, absolute?)`** — generates a URL; TypeScript enforces that `params` is required for routes with dynamic segments and forbidden for static routes. When `absolute` is `true`, the result is prefixed with the configured `baseUrl` (falls back to the plain relative path if no `baseUrl` was set)
 - **`match(route, pathname)`** — returns `PathMatch | null`
-- **`createNavigator(navigate, pathname)`** — returns `{ to, match, path }` for navigation; `navigate` and `pathname` are injected by the adapter (e.g. `useNavigate()` and `useLocation().pathname` in react-router)
+- **`createRouter(navigate, pathname)`** — returns `{ to, match, path, url }` for navigation; `navigate` and `pathname` are injected by the adapter (e.g. `useNavigate()` and `useLocation().pathname` in react-router)
 
 ### Type machinery (`src/types/PathParam.ts`)
 
@@ -45,29 +45,32 @@ Returned object:
 
 TypeScript 6 removed support for the character-by-character `RegexMatchPlus` approach from react-router's type declarations. The replacement uses simpler template literal patterns (`${Prefix}:${Param}/${Suffix}` and `${Prefix}:${Param}`).
 
-### `RouterAdapter` (`src/types/RouterAdapter.ts`)
+### `NavigatorParams` (`src/types/NavigatorParams.ts`)
 
-The adapter interface allows overriding the default `generatePath` and `matchPath` implementations. Both default to the local implementations (copied from react-router, no dependency).
+Passed as the second argument to `createNavigator`, as a `Partial<NavigatorParams>`. Fields:
+- **`baseUrl`** — optional; used by `url(route, params?, absolute: true)` to produce an absolute URL. A trailing slash is stripped; if unset, `absolute: true` just returns the relative path.
+- **`generatePath`** / **`matchPath`** — override the default implementations (copied from react-router, no dependency). Both default to the local implementations.
 
 ```ts
-createRouter(routes, {
+createNavigator(routes, {
+    baseUrl: "https://example.com",
     generatePath?: (path, params?) => string,
     matchPath?: (pattern, pathname) => PathMatch | null,
 });
 ```
 
-### `createNavigator(navigate, pathname)` integration pattern
+### `createRouter(navigate, pathname)` integration pattern
 
 In a react-router adapter package:
 ```ts
 const makeRouter = (routes) => {
-    const router = createRouter(routes);
+    const router = createNavigator(routes);
     return {
         ...router,
-        createNavigator: () => {
+        useNavigator: () => {
             const navigate = useNavigate();
             const { pathname } = useLocation();
-            return useMemo(() => router.createNavigator(navigate, pathname), [navigate, pathname]);
+            return useMemo(() => router.createRouter(navigate, pathname), [navigate, pathname]);
         },
     };
 };
@@ -78,8 +81,8 @@ const makeRouter = (routes) => {
 Controls the type of options passed to `navigate` and forwarded through `to()`:
 
 ```ts
-createRouter<typeof routes, NavigateOptions>(routes);
-// router.createNavigator(navigate: (path, options?: NavigateOptions) => void, pathname)
+createNavigator<typeof routes, NavigateOptions>(routes);
+// router.createRouter(navigate: (path, options?: NavigateOptions) => void, pathname)
 // { to: (route, params?, options?: NavigateOptions) => void }
 ```
 

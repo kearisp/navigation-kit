@@ -71,6 +71,43 @@ describe("createNavigator — url", () => {
     });
 });
 
+describe("createNavigator — url with baseUrl", () => {
+    it("returns a relative URL when absolute is not passed", () => {
+        const r = createNavigator(routes, {baseUrl: "https://example.com"});
+        expect(r.url("user", {id: "42"})).toBe("/users/42");
+    });
+
+    it("returns a relative URL when absolute is false", () => {
+        const r = createNavigator(routes, {baseUrl: "https://example.com"});
+        expect(r.url("user", {id: "42"}, false)).toBe("/users/42");
+    });
+
+    it("prefixes the URL with baseUrl when absolute is true", () => {
+        const r = createNavigator(routes, {baseUrl: "https://example.com"});
+        expect(r.url("user", {id: "42"}, true)).toBe("https://example.com/users/42");
+    });
+
+    it("strips a trailing slash from baseUrl", () => {
+        const r = createNavigator(routes, {baseUrl: "https://example.com/"});
+        expect(r.url("about", undefined, true)).toBe("https://example.com/about");
+    });
+
+    it("works with routes without params", () => {
+        const r = createNavigator(routes, {baseUrl: "https://example.com"});
+        expect(r.url("about", undefined, true)).toBe("https://example.com/about");
+    });
+
+    it("returns the plain path when absolute is true but no baseUrl is configured", () => {
+        expect(router.url("user", {id: "42"}, true)).toBe("/users/42");
+    });
+
+    it("createRouter().url also respects absolute/baseUrl", () => {
+        const r = createNavigator(routes, {baseUrl: "https://example.com"});
+        const {url} = r.createRouter(jest.fn(), "/");
+        expect(url("user", {id: "42"}, true)).toBe("https://example.com/users/42");
+    });
+});
+
 describe("createNavigator — match", () => {
     it("returns a match when pathname matches", () => {
         const result = router.match("user", "/users/42");
