@@ -1,4 +1,4 @@
-import {RouteMap, PathPattern, PathMatch, PathParam, RouterAdapter} from "../types";
+import {RouteMap, PathPattern, PathMatch, PathParam, NavigatorParams} from "../types";
 import {generatePath as defaultGeneratePath} from "./generatePath";
 import {matchPath as defaultMatchPath} from "./matchPath";
 
@@ -28,10 +28,11 @@ type RoutesWithoutParams<T extends RouteMap> = {
 
 export const createNavigator = <const TRoutes extends RouteMap>(
     routes: TRoutes,
-    adapter: Partial<RouterAdapter> = {}
+    adapter: Partial<NavigatorParams> = {}
 ) => {
     const _generatePath = adapter.generatePath ?? defaultGeneratePath;
     const _matchPath = adapter.matchPath ?? defaultMatchPath;
+    const baseUrl = adapter.baseUrl;
 
     const handlePattern = <R extends keyof TRoutes>(route: R): PathPattern => {
         const pattern = routes[route];
@@ -42,13 +43,18 @@ export const createNavigator = <const TRoutes extends RouteMap>(
         return handlePattern(route).path;
     };
 
-    function handleUrl<R extends RoutesWithoutParams<TRoutes>>(route: R): string;
-    function handleUrl<R extends RoutesWithParams<TRoutes>>(route: R, params: RouteParams<TRoutes[R]>): string;
-    function handleUrl<R extends keyof TRoutes>(route: R, params?: RouteParams<TRoutes[R]>): string {
-        return _generatePath(
+    const withBaseUrl = (path: string): string => {
+        return baseUrl ? `${baseUrl.replace(/\/+$/, "")}${path}` : path;
+    };
+
+    function handleUrl<R extends RoutesWithoutParams<TRoutes>>(route: R, params?: never, absolute?: boolean): string;
+    function handleUrl<R extends RoutesWithParams<TRoutes>>(route: R, params: RouteParams<TRoutes[R]>, absolute?: boolean): string;
+    function handleUrl<R extends keyof TRoutes>(route: R, params?: RouteParams<TRoutes[R]>, absolute?: boolean): string {
+        const path = _generatePath(
             handlePattern(route).path,
             params as Record<string, string | null | undefined>
         );
+        return absolute ? withBaseUrl(path) : path;
     }
 
     const handleMatch = <R extends keyof TRoutes>(

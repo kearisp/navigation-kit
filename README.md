@@ -19,7 +19,7 @@ npm install navigation-kit
 ## Quick start
 
 ```ts
-import { createRouter } from "navigation-kit";
+import { createNavigator } from "navigation-kit";
 
 const routes = {
     home:    "/",
@@ -28,7 +28,7 @@ const routes = {
     post:    "/users/:userId/posts/:postId",
 } as const; // as const is required — see note below
 
-const router = createRouter(routes);
+const router = createNavigator(routes);
 
 router.path("user");                           // "/users/:id"
 router.url("about");                           // "/about"
@@ -41,18 +41,18 @@ router.match("user", "/users/42");            // PathMatch | null
 
 ## API
 
-### `createRouter(routes, adapter?)`
+### `createNavigator(routes, params?)`
 
 Creates a typed router object from a route map.
 
 ```ts
-const router = createRouter(routes);
+const router = createNavigator(routes);
 ```
 
 **Type parameters:**
 
 ```ts
-createRouter<TRoutes>(routes, adapter?)
+createNavigator<TRoutes>(routes, params?)
 ```
 
 - `TRoutes` — inferred from the routes argument; use `as const` on your routes object
@@ -87,7 +87,7 @@ router.path("user"); // "/users/:id"
 
 ---
 
-#### `router.url(route, params?)`
+#### `router.url(route, params?, absolute?)`
 
 Generates a URL. TypeScript enforces that `params` is **required** for routes with dynamic segments and **forbidden** for static routes.
 
@@ -111,6 +111,15 @@ router.url("lang", { lang: null });    // "/articles"
 router.url("files", { "*": "img/logo.png" }); // "/files/img/logo.png"
 ```
 
+Pass `absolute: true` as the third argument to prefix the result with `baseUrl` (see [Base URL](#base-url)):
+
+```ts
+const router = createNavigator(routes, { baseUrl: "https://example.com" });
+
+router.url("user", { id: "42" });          // "/users/42"
+router.url("user", { id: "42" }, true);   // "https://example.com/users/42"
+```
+
 ---
 
 #### `router.match(route, pathname)`
@@ -124,19 +133,20 @@ match?.params.id; // "42"
 
 ---
 
-#### `router.createNavigator<TNavigateOptions>(navigate, pathname)`
+#### `router.createRouter<TNavigateOptions>(navigate, pathname)`
 
 Creates navigation helpers by injecting a `navigate` function and the current `pathname`. Designed to be called inside a framework hook.
 
 The generic `TNavigateOptions` types the `options` argument forwarded to `navigate` (e.g. `NavigateOptions` from react-router). Defaults to `void`.
 
 ```ts
-const { to, match, path } = router.createNavigator(navigate, pathname);
+const { to, match, path, url } = router.createRouter(navigate, pathname);
 
 to("about");                          // navigates to "/about"
 to("user", { id: "42" });            // navigates to "/users/42"
 match("user");                        // matches against current pathname
 path("user");                         // "/users/:id"
+url("user", { id: "42" }, true);     // "https://example.com/users/42" (with baseUrl configured)
 ```
 
 `to()` follows the same overloads as `url()` — params are required/forbidden based on the route.
@@ -146,12 +156,12 @@ path("user");                         // "/users/:id"
 This package has no dependency on `react-router`. Integration lives in a separate adapter package:
 
 ```ts
-import { createRouter } from "navigation-kit";
+import { createNavigator } from "navigation-kit";
 import { useNavigate, useLocation, generatePath, matchPath } from "react-router";
 import { useMemo } from "react";
 
 export const makeRouter = <const TRoutes extends RouteMap>(routes: TRoutes) => {
-    const router = createRouter(routes, { generatePath, matchPath });
+    const router = createNavigator(routes, { generatePath, matchPath });
 
     return {
         ...router,
@@ -159,7 +169,7 @@ export const makeRouter = <const TRoutes extends RouteMap>(routes: TRoutes) => {
             const navigate = useNavigate();
             const { pathname } = useLocation();
             return useMemo(
-                () => router.createNavigator(navigate, pathname),
+                () => router.createRouter(navigate, pathname),
                 [navigate, pathname]
             );
         },
@@ -167,27 +177,41 @@ export const makeRouter = <const TRoutes extends RouteMap>(routes: TRoutes) => {
 };
 ```
 
-## Custom adapter
+## Custom params
 
-Override `generatePath` and/or `matchPath` with your own implementations:
+`createNavigator`'s second argument (`NavigatorParams`) lets you override `generatePath` and/or `matchPath`, and configure a `baseUrl`:
 
 ```ts
-const router = createRouter(routes, {
+const router = createNavigator(routes, {
     generatePath: (path, params) => myGeneratePath(path, params),
     matchPath: (pattern, pathname) => myMatchPath(pattern, pathname),
+    baseUrl: "https://example.com",
 });
 ```
 
-Both have built-in defaults (implementations copied from react-router, no runtime dependency).
+`generatePath` and `matchPath` both have built-in defaults (implementations copied from react-router, no runtime dependency).
+
+## Base URL
+
+Pass `baseUrl` to prefix absolute URLs without changing the default relative behavior:
+
+```ts
+const router = createNavigator(routes, { baseUrl: "https://example.com" });
+
+router.url("user", { id: "42" });          // "/users/42"          — relative (default)
+router.url("user", { id: "42" }, true);   // "https://example.com/users/42" — absolute
+```
+
+A trailing slash on `baseUrl` is stripped automatically. If `absolute: true` is passed without a configured `baseUrl`, the plain (relative) path is returned.
 
 ## Navigate options
 
-Pass a type parameter to `createNavigator` to type the options forwarded through `to()`:
+Pass a type parameter to `createRouter` to type the options forwarded through `to()`:
 
 ```ts
 import { NavigateOptions } from "react-router";
 
-const { to } = router.createNavigator<NavigateOptions>(navigate, pathname);
+const { to } = router.createRouter<NavigateOptions>(navigate, pathname);
 to("about", undefined, { replace: true });
 to("user", { id: "42" }, { state: { from: "/" } });
 ```
@@ -198,14 +222,14 @@ The intended pattern is to create the router in one place and import it wherever
 
 ```ts
 // router.ts — define once
-import { createRouter } from "navigation-kit";
+import { createNavigator } from "navigation-kit";
 
 const routes = {
     home:  "/",
     user:  "/users/:id",
 } as const;
 
-export const Router = createRouter(routes);
+export const Router = createNavigator(routes);
 ```
 
 ```ts
@@ -219,7 +243,7 @@ export const useRouter = () => {
     const { pathname } = useLocation();
 
     return useMemo(
-        () => Router.createNavigator<NavigateOptions>(navigate, pathname),
+        () => Router.createRouter<NavigateOptions>(navigate, pathname),
         [navigate, pathname]
     );
 };
